@@ -1,0 +1,12 @@
+[package]
+name = "threatprint-sim"
+description = "ThreatPrint simulation and spatial-value engine (UI-independent)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }

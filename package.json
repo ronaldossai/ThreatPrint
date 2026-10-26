@@ -1,0 +1,13 @@
+{
+  "name": "threatprint",
+  "private": true,
+  "workspaces": [
+    "apps/desktop"
+  ],
+  "scripts": {
+    "app": "npm run tauri -w @threatprint/desktop -- dev",
+    "app:build": "npm run tauri -w @threatprint/desktop -- build",
+    "test": "cargo test --workspace && npm test -w @threatprint/desktop",
+    "typecheck": "npm run typecheck -w @threatprint/desktop"
+  }
+}
