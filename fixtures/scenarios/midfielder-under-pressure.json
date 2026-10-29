@@ -1,0 +1,22 @@
+{
+  "id": "midfielder-under-pressure",
+  "name": "Midfielder receiving under pressure",
+  "description": "Central midfielder receives a pass from the centre-back with their back to goal. The opposing holding midfielder presses tight from behind while a second midfielder closes from the side. Options include turning, setting back, playing a first-time pass wide, or carrying away from pressure.",
+  "tags": ["central", "pressure", "build-up"],
+  "players": [
+    { "id": "cm", "team": "attack", "label": "CM", "pos": { "x": 0.55, "y": 0.5 } },
+    { "id": "rcb", "team": "attack", "label": "CB", "pos": { "x": 0.36, "y": 0.58 } },
+    { "id": "cm2", "team": "attack", "label": "CM", "pos": { "x": 0.5, "y": 0.3 } },
+    { "id": "rb", "team": "attack", "label": "RB", "pos": { "x": 0.47, "y": 0.9 } },
+    { "id": "lw", "team": "attack", "label": "LW", "pos": { "x": 0.7, "y": 0.1 } },
+    { "id": "rw", "team": "attack", "label": "RW", "pos": { "x": 0.71, "y": 0.86 } },
+    { "id": "st", "team": "attack", "label": "ST", "pos": { "x": 0.79, "y": 0.47 } },
+    { "id": "dm", "team": "defence", "label": "DM", "pos": { "x": 0.575, "y": 0.505 } },
+    { "id": "dcm", "team": "defence", "label": "CM", "pos": { "x": 0.54, "y": 0.37 } },
+    { "id": "drcb", "team": "defence", "label": "CB", "pos": { "x": 0.81, "y": 0.41 } },
+    { "id": "dlcb", "team": "defence", "label": "CB", "pos": { "x": 0.81, "y": 0.59 } },
+    { "id": "drb", "team": "defence", "label": "RB", "pos": { "x": 0.75, "y": 0.18 } },
+    { "id": "dlb", "team": "defence", "label": "LB", "pos": { "x": 0.76, "y": 0.8 } }
+  ],
+  "ball": { "pos": { "x": 0.545, "y": 0.505 }, "owner": "cm" }
+}

@@ -1,6 +1,7 @@
 //! Every bundled scenario fixture must deserialise into the engine's schema
-//! and pass validation. This keeps the JSON shared with the UI honest.
+//! and pass validation, with unique scenario ids. This keeps the JSON shared with the UI honest.
 
+use std::collections::HashSet;
 use std::fs;
 use std::path::PathBuf;
 
@@ -9,7 +10,7 @@ use threatprint_sim::Scenario;
 #[test]
 fn bundled_scenarios_are_valid() {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/scenarios");
-    let mut count = 0;
+    let mut ids = HashSet::new();
     for entry in fs::read_dir(&dir).expect("fixtures/scenarios exists") {
         let path = entry.unwrap().path();
         if path.extension().is_some_and(|e| e == "json") {
@@ -19,8 +20,8 @@ fn bundled_scenarios_are_valid() {
             scenario
                 .validate()
                 .unwrap_or_else(|e| panic!("{} is invalid: {e}", path.display()));
-            count += 1;
+            assert!(ids.insert(scenario.id.clone()), "duplicate scenario id `{}`", scenario.id);
         }
     }
-    assert!(count > 0, "expected at least one scenario fixture");
+    assert!(!ids.is_empty(), "expected at least one scenario fixture");
 }

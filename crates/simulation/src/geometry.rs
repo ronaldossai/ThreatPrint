@@ -9,6 +9,8 @@
 //!   possession always attacks toward `+x`.**
 //! - `y ∈ [0, 1]`: across the pitch width. `0` is the top touchline and `1`
 //!   the bottom touchline, as viewed with the attack going left to right.
+//!   Facing the attacked goal, `y = 0` is therefore the attacking team's
+//!   **left** touchline (and the defending team's right).
 //!
 //! Geometric calculations happen in **metres** ([`Point`]) using the same
 //! axes, with the origin at the top-left corner (own goal line, top touchline).

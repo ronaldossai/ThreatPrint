@@ -92,8 +92,19 @@ code {
   letter-spacing: 0.02em;
 }
 
-.scenario-name {
-  color: var(--muted);
+.template-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+select {
+  font: inherit;
+  color: inherit;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 8px;
 }
 
 .spacer {
@@ -359,6 +370,32 @@ code {
 
 .roster-item.defence .dot {
   background: var(--defence);
+}
+
+.scenario-description {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.tags {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.tags li {
+  font-size: 11px;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1px 8px;
+}
+
+.stale {
+  opacity: 0.5;
 }
 
 .model-note p {

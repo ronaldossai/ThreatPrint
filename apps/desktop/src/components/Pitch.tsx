@@ -1,7 +1,7 @@
-import { memo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, PointerEvent } from "react";
 import { PITCH, clientToPitch, nudge, toMetres } from "../coords";
-import { threatColour } from "../heatmapColour";
+import { threatRgba } from "../heatmapColour";
 import type { Player, Pos, Scenario, ThreatGrid } from "../types";
 
 // The SVG user space is in metres (origin: own goal line / top touchline),
@@ -21,35 +21,72 @@ interface PitchProps {
   onMovePlayer: (id: string, pos: Pos) => void;
   onMoveBall: (pos: Pos) => void;
   onDropBall: (pos: Pos) => void;
+  onDragChange: (dragging: boolean) => void;
 }
 
 export function Pitch(props: PitchProps) {
-  const { scenario, grid, showHeatmap, selectedId, onSelect } = props;
+  const { scenario, grid, showHeatmap, selectedId } = props;
   const svgRef = useRef<SVGSVGElement>(null);
-  const [drag, setDrag] = useState<DragTarget | null>(null);
+  const [dragging, setDragging] = useState(false);
 
-  const posFromEvent = (e: PointerEvent) => clientToPitch(svgRef.current!, e.clientX, e.clientY);
+  // Handlers read the latest props through a ref so they can stay referentially
+  // stable, which lets memoised markers skip re-rendering while another one moves.
+  const latest = useRef(props);
+  useLayoutEffect(() => {
+    latest.current = props;
+  });
 
-  const startDrag = (target: DragTarget) => (e: PointerEvent<SVGGElement>) => {
+  const drag = useRef<DragTarget | null>(null);
+  // Pointer events can arrive faster than the display refreshes; apply at most one move per frame.
+  const pendingPos = useRef<Pos | null>(null);
+  const frame = useRef(0);
+
+  const flushMove = useCallback(() => {
+    frame.current = 0;
+    const pos = pendingPos.current;
+    const target = drag.current;
+    pendingPos.current = null;
+    if (!pos || !target) return;
+    if (target.kind === "player") latest.current.onMovePlayer(target.id, pos);
+    else latest.current.onMoveBall(pos);
+  }, []);
+
+  useEffect(() => () => cancelAnimationFrame(frame.current), []);
+
+  const beginDrag = useCallback((target: DragTarget, e: PointerEvent<SVGGElement>) => {
     e.stopPropagation();
     e.currentTarget.setPointerCapture(e.pointerId);
-    setDrag(target);
-    if (target.kind === "player") onSelect(target.id);
-  };
+    drag.current = target;
+    setDragging(true);
+    latest.current.onDragChange(true);
+    if (target.kind === "player") latest.current.onSelect(target.id);
+  }, []);
 
   const handleMove = (e: PointerEvent<SVGSVGElement>) => {
-    if (!drag) return;
-    const pos = posFromEvent(e);
-    if (drag.kind === "player") props.onMovePlayer(drag.id, pos);
-    else props.onMoveBall(pos);
+    if (!drag.current) return;
+    pendingPos.current = clientToPitch(svgRef.current!, e.clientX, e.clientY);
+    if (!frame.current) frame.current = requestAnimationFrame(flushMove);
   };
 
-  const handleUp = (e: PointerEvent<SVGSVGElement>) => {
-    if (drag?.kind === "ball") props.onDropBall(posFromEvent(e));
-    setDrag(null);
+  const endDrag = (e: PointerEvent<SVGSVGElement>, cancelled: boolean) => {
+    const target = drag.current;
+    if (!target) return;
+    cancelAnimationFrame(frame.current);
+    flushMove();
+    if (target.kind === "ball" && !cancelled) {
+      latest.current.onDropBall(clientToPitch(svgRef.current!, e.clientX, e.clientY));
+    }
+    drag.current = null;
+    setDragging(false);
+    latest.current.onDragChange(false);
   };
 
-  const handlePlayerKey = (player: Player) => (e: KeyboardEvent<SVGGElement>) => {
+  const handlePlayerDown = useCallback(
+    (player: Player, e: PointerEvent<SVGGElement>) => beginDrag({ kind: "player", id: player.id }, e),
+    [beginDrag],
+  );
+
+  const handlePlayerKey = useCallback((player: Player, e: KeyboardEvent<SVGGElement>) => {
     const step = e.shiftKey ? 2 : 0.5;
     const delta: Record<string, [number, number]> = {
       ArrowLeft: [-step, 0],
@@ -60,21 +97,23 @@ export function Pitch(props: PitchProps) {
     const d = delta[e.key];
     if (!d) return;
     e.preventDefault();
-    props.onMovePlayer(player.id, nudge(player.pos, d[0], d[1]));
-  };
+    latest.current.onMovePlayer(player.id, nudge(player.pos, d[0], d[1]));
+  }, []);
+
+  const handlePlayerFocus = useCallback((player: Player) => latest.current.onSelect(player.id), []);
 
   const ball = toMetres(scenario.ball.pos);
 
   return (
     <svg
       ref={svgRef}
-      className={`pitch${drag ? " dragging" : ""}`}
+      className={`pitch${dragging ? " dragging" : ""}`}
       viewBox={`${-MARGIN_M} ${-MARGIN_M} ${PITCH.lengthM + 2 * MARGIN_M} ${PITCH.widthM + 2 * MARGIN_M}`}
       preserveAspectRatio="xMidYMid meet"
       onPointerMove={handleMove}
-      onPointerUp={handleUp}
-      onPointerCancel={() => setDrag(null)}
-      onPointerDown={() => onSelect(null)}
+      onPointerUp={(e) => endDrag(e, false)}
+      onPointerCancel={(e) => endDrag(e, true)}
+      onPointerDown={() => props.onSelect(null)}
       role="application"
       aria-label="Pitch. Attacking left to right."
     >
@@ -83,30 +122,21 @@ export function Pitch(props: PitchProps) {
       <Markings />
       <AttackArrow />
 
-      {scenario.players.map((p) => {
-        const m = toMetres(p.pos);
-        return (
-          <g
-            key={p.id}
-            className={`player ${p.team}${p.id === selectedId ? " selected" : ""}`}
-            transform={`translate(${m.x} ${m.y})`}
-            onPointerDown={startDrag({ kind: "player", id: p.id })}
-            onKeyDown={handlePlayerKey(p)}
-            onFocus={() => onSelect(p.id)}
-            tabIndex={0}
-            role="button"
-            aria-label={`${p.label} (${p.team}). Arrow keys move; Shift for larger steps.`}
-          >
-            <circle r={PLAYER_R} />
-            <text dy="0.05em">{p.label}</text>
-          </g>
-        );
-      })}
+      {scenario.players.map((p) => (
+        <PlayerMarker
+          key={p.id}
+          player={p}
+          selected={p.id === selectedId}
+          onPointerDown={handlePlayerDown}
+          onKeyDown={handlePlayerKey}
+          onFocus={handlePlayerFocus}
+        />
+      ))}
 
       <g
         className="ball"
         transform={`translate(${ball.x} ${ball.y})`}
-        onPointerDown={startDrag({ kind: "ball" })}
+        onPointerDown={(e) => beginDrag({ kind: "ball" }, e)}
         aria-label="Ball"
       >
         <circle r={BALL_R} />
@@ -115,26 +145,67 @@ export function Pitch(props: PitchProps) {
   );
 }
 
-// The grid only changes when the model does, so avoid re-rendering thousands of rects on every drag.
-const Heatmap = memo(function Heatmap({ grid }: { grid: ThreatGrid }) {
-  const w = PITCH.lengthM / grid.cols;
-  const h = PITCH.widthM / grid.rows;
-  const cells = [];
-  for (let row = 0; row < grid.rows; row++) {
-    for (let col = 0; col < grid.cols; col++) {
-      const v = grid.values[row * grid.cols + col];
-      // Slight overlap hides hairline seams between cells.
-      cells.push(
-        <rect key={row * grid.cols + col} x={col * w} y={row * h} width={w + 0.05} height={h + 0.05} fill={threatColour(v)} />,
-      );
-    }
-  }
+interface PlayerMarkerProps {
+  player: Player;
+  selected: boolean;
+  onPointerDown: (player: Player, e: PointerEvent<SVGGElement>) => void;
+  onKeyDown: (player: Player, e: KeyboardEvent<SVGGElement>) => void;
+  onFocus: (player: Player) => void;
+}
+
+const PlayerMarker = memo(function PlayerMarker({ player, selected, onPointerDown, onKeyDown, onFocus }: PlayerMarkerProps) {
+  const m = toMetres(player.pos);
   return (
-    <g className="heatmap" shapeRendering="crispEdges" pointerEvents="none">
-      {cells}
+    <g
+      className={`player ${player.team}${selected ? " selected" : ""}`}
+      transform={`translate(${m.x} ${m.y})`}
+      onPointerDown={(e) => onPointerDown(player, e)}
+      onKeyDown={(e) => onKeyDown(player, e)}
+      onFocus={() => onFocus(player)}
+      tabIndex={0}
+      role="button"
+      aria-label={`${player.label} (${player.team}). Arrow keys move; Shift for larger steps.`}
+    >
+      <circle r={PLAYER_R} />
+      <text dy="0.05em">{player.label}</text>
     </g>
   );
 });
+
+// One raster image instead of thousands of translucent SVG rects: markers dragged
+// over it no longer force the browser to re-composite every cell. Bilinear
+// upscaling of the grid also gives a smoother field than hard-edged cells.
+const Heatmap = memo(function Heatmap({ grid }: { grid: ThreatGrid }) {
+  const href = useMemo(() => heatmapDataUrl(grid), [grid]);
+  if (!href) return null;
+  return (
+    <image
+      className="heatmap"
+      href={href}
+      x={0}
+      y={0}
+      width={PITCH.lengthM}
+      height={PITCH.widthM}
+      preserveAspectRatio="none"
+      pointerEvents="none"
+    />
+  );
+});
+
+function heatmapDataUrl(grid: ThreatGrid): string | null {
+  const canvas = document.createElement("canvas");
+  canvas.width = grid.cols;
+  canvas.height = grid.rows;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+  const img = ctx.createImageData(grid.cols, grid.rows);
+  grid.values.forEach((v, i) => {
+    const [r, g, b, a] = threatRgba(v);
+    img.data.set([r, g, b, Math.round(a * 255)], i * 4);
+  });
+  ctx.putImageData(img, 0, 0);
+  return canvas.toDataURL();
+}
 
 const Markings = memo(function Markings() {
   const { lengthM: L, widthM: W } = PITCH;
@@ -169,7 +240,7 @@ function PenaltyEnd() {
   );
 }
 
-function AttackArrow() {
+const AttackArrow = memo(function AttackArrow() {
   const y = PITCH.widthM + 2.2;
   return (
     <g className="attack-arrow" pointerEvents="none">
@@ -180,4 +251,4 @@ function AttackArrow() {
       </text>
     </g>
   );
-}
+});

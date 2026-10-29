@@ -1,23 +1,24 @@
-import { useEffect, useReducer, useRef, useState } from "react";
-import wingerReceiving from "../../../fixtures/scenarios/winger-receiving.json";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { Pitch } from "./components/Pitch";
 import { distanceToGoalM, toMetres } from "./coords";
 import { engineAvailable, fetchLocationThreat, fetchThreatGrid } from "./engine";
 import { threatLegendGradient } from "./heatmapColour";
 import { scenarioReducer } from "./scenarioState";
-import type { Player, Scenario, ThreatGrid } from "./types";
+import { DEFAULT_TEMPLATE, TEMPLATES, templateById } from "./templates";
+import type { Player, Pos, ThreatGrid } from "./types";
 
-const INITIAL = wingerReceiving as Scenario;
-// 1.25 m cells: fine enough to read, cheap enough to render as SVG.
+// 1.25 m cells, upscaled smoothly as a single image.
 const GRID_COLS = 84;
 const GRID_ROWS = 54;
 
 export default function App() {
-  const [scenario, dispatch] = useReducer(scenarioReducer, INITIAL);
+  const [templateId, setTemplateId] = useState(DEFAULT_TEMPLATE.id);
+  const [scenario, dispatch] = useReducer(scenarioReducer, DEFAULT_TEMPLATE);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showHeatmap, setShowHeatmap] = useState(true);
   const [grid, setGrid] = useState<ThreatGrid | null>(null);
   const [ballThreat, setBallThreat] = useState<number | null>(null);
+  const [dragging, setDragging] = useState(false);
   const [engineError, setEngineError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -25,17 +26,30 @@ export default function App() {
     fetchThreatGrid(GRID_COLS, GRID_ROWS).then(setGrid, (e) => setEngineError(String(e)));
   }, []);
 
+  // Evaluate when a drag ends rather than on every frame of it.
   // Latest-wins: ignore responses that arrive after a newer request was sent.
   const requestSeq = useRef(0);
   const ballPos = scenario.ball.pos;
   useEffect(() => {
-    if (!engineAvailable) return;
+    if (!engineAvailable || dragging) return;
     const seq = ++requestSeq.current;
     fetchLocationThreat(ballPos).then(
       (v) => seq === requestSeq.current && setBallThreat(v),
       (e) => setEngineError(String(e)),
     );
-  }, [ballPos]);
+  }, [ballPos, dragging]);
+
+  const loadTemplate = (id: string) => {
+    const template = templateById(id);
+    if (!template) return;
+    setTemplateId(id);
+    dispatch({ type: "load", scenario: template });
+    setSelectedId(null);
+  };
+
+  const onMovePlayer = useCallback((id: string, pos: Pos) => dispatch({ type: "movePlayer", id, pos }), []);
+  const onMoveBall = useCallback((pos: Pos) => dispatch({ type: "moveBall", pos }), []);
+  const onDropBall = useCallback((pos: Pos) => dispatch({ type: "dropBall", pos }), []);
 
   const selected = scenario.players.find((p) => p.id === selectedId) ?? null;
   const owner = scenario.players.find((p) => p.id === scenario.ball.owner) ?? null;
@@ -44,20 +58,22 @@ export default function App() {
     <div className="app">
       <header className="toolbar">
         <h1>ThreatPrint</h1>
-        <span className="scenario-name">{scenario.name}</span>
+        <label className="template-picker">
+          <span className="muted">Scenario</span>
+          <select value={templateId} onChange={(e) => loadTemplate(e.target.value)}>
+            {TEMPLATES.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+        </label>
         <div className="spacer" />
         <label className="toggle">
           <input type="checkbox" checked={showHeatmap} onChange={(e) => setShowHeatmap(e.target.checked)} />
           Threat heatmap
         </label>
-        <button
-          onClick={() => {
-            dispatch({ type: "load", scenario: INITIAL });
-            setSelectedId(null);
-          }}
-        >
-          Reset
-        </button>
+        <button onClick={() => loadTemplate(templateId)}>Reset</button>
       </header>
 
       {!engineAvailable && (
@@ -75,9 +91,10 @@ export default function App() {
             showHeatmap={showHeatmap}
             selectedId={selectedId}
             onSelect={setSelectedId}
-            onMovePlayer={(id, pos) => dispatch({ type: "movePlayer", id, pos })}
-            onMoveBall={(pos) => dispatch({ type: "moveBall", pos })}
-            onDropBall={(pos) => dispatch({ type: "dropBall", pos })}
+            onMovePlayer={onMovePlayer}
+            onMoveBall={onMoveBall}
+            onDropBall={onDropBall}
+            onDragChange={setDragging}
           />
           {showHeatmap && (
             <div className="legend" aria-label="Heatmap legend">
@@ -90,6 +107,18 @@ export default function App() {
 
         <aside className="panel">
           <section>
+            <h2>Scenario</h2>
+            <p className="scenario-description">{scenario.description}</p>
+            {scenario.tags && scenario.tags.length > 0 && (
+              <ul className="tags">
+                {scenario.tags.map((t) => (
+                  <li key={t}>{t}</li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section>
             <h2>Ball</h2>
             <dl>
               <dt>In possession</dt>
@@ -97,7 +126,7 @@ export default function App() {
               <dt>Distance to goal</dt>
               <dd>{distanceToGoalM(scenario.ball.pos).toFixed(0)} m</dd>
               <dt>Baseline threat</dt>
-              <dd>
+              <dd className={dragging ? "stale" : undefined} title={dragging ? "Updates when you release" : undefined}>
                 {ballThreat === null ? "—" : ballThreat.toFixed(2)}
                 {ballThreat !== null && <Meter value={ballThreat} />}
               </dd>
@@ -151,7 +180,7 @@ function PlayerDetails({ player }: { player: Player }) {
       </dd>
       <dt>Position</dt>
       <dd>
-        {m.x.toFixed(1)} m upfield, {m.y.toFixed(1)} m from top touchline
+        {m.x.toFixed(1)} m upfield, {m.y.toFixed(1)} m from left touchline
       </dd>
       <dt>Distance to goal</dt>
       <dd>{distanceToGoalM(player.pos).toFixed(0)} m</dd>

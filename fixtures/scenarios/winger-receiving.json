@@ -1,17 +1,17 @@
 {
   "id": "winger-receiving",
   "name": "Winger receiving in the final third",
-  "description": "Right winger receives near the touchline. The opposing fullback presses while a centre-back covers. The striker is preparing a run and a central midfielder offers support.",
+  "description": "Right winger receives near the touchline. The opposing left-back presses while a centre-back covers. The striker is preparing a run and a central midfielder offers support.",
   "tags": ["wide", "1v1", "final-third"],
   "players": [
-    { "id": "rw", "team": "attack", "label": "RW", "pos": { "x": 0.76, "y": 0.1 } },
-    { "id": "st", "team": "attack", "label": "ST", "pos": { "x": 0.84, "y": 0.46 } },
-    { "id": "cm", "team": "attack", "label": "CM", "pos": { "x": 0.66, "y": 0.3 } },
-    { "id": "rb", "team": "attack", "label": "RB", "pos": { "x": 0.62, "y": 0.06 } },
-    { "id": "lb", "team": "defence", "label": "LB", "pos": { "x": 0.81, "y": 0.13 } },
-    { "id": "lcb", "team": "defence", "label": "CB", "pos": { "x": 0.87, "y": 0.33 } },
-    { "id": "rcb", "team": "defence", "label": "CB", "pos": { "x": 0.88, "y": 0.53 } },
-    { "id": "dm", "team": "defence", "label": "DM", "pos": { "x": 0.74, "y": 0.38 } }
+    { "id": "rw", "team": "attack", "label": "RW", "pos": { "x": 0.76, "y": 0.9 } },
+    { "id": "st", "team": "attack", "label": "ST", "pos": { "x": 0.84, "y": 0.54 } },
+    { "id": "cm", "team": "attack", "label": "CM", "pos": { "x": 0.66, "y": 0.7 } },
+    { "id": "rb", "team": "attack", "label": "RB", "pos": { "x": 0.62, "y": 0.94 } },
+    { "id": "lb", "team": "defence", "label": "LB", "pos": { "x": 0.81, "y": 0.87 } },
+    { "id": "lcb", "team": "defence", "label": "CB", "pos": { "x": 0.87, "y": 0.67 } },
+    { "id": "rcb", "team": "defence", "label": "CB", "pos": { "x": 0.88, "y": 0.47 } },
+    { "id": "dm", "team": "defence", "label": "DM", "pos": { "x": 0.74, "y": 0.62 } }
   ],
-  "ball": { "pos": { "x": 0.765, "y": 0.11 }, "owner": "rw" }
+  "ball": { "pos": { "x": 0.765, "y": 0.89 }, "owner": "rw" }
 }

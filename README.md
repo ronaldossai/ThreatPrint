@@ -15,7 +15,7 @@ apps/desktop/          Tauri 2 + React + TypeScript UI
   src/                 React app (pitch, panel, coordinate helpers)
   src-tauri/           Thin Tauri shell exposing typed commands
 crates/simulation/     threatprint-sim: UI-independent Rust engine
-fixtures/scenarios/    Example scenarios (JSON, shared by UI and engine tests)
+fixtures/scenarios/    Scenario templates (JSON). Every file here appears in the app's picker.
 docs/MODEL_NOTES.md    Coordinate system, model formulas, assumptions, limits
 ```
 
@@ -51,6 +51,7 @@ unavailable.
 
 ## Using the app
 
+- Pick a starting situation from the **Scenario** menu. Reset returns to it.
 - Drag players to reposition them. The ball moves with its owner.
 - Drag the ball and drop it within 2.5 m of an attacker to give them possession.
 - Tab to a player and use the arrow keys to nudge them 0.5 m (hold Shift for 2 m).
