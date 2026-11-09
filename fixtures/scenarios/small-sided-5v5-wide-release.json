@@ -1,0 +1,20 @@
+{
+  "id": "small-sided-5v5-wide-release",
+  "name": "5v5: wide release",
+  "description": "Small-sided game on a 40 m × 20 m pitch. The right-sided player receives in the attacking half and is pressed straight away. The pivot is pinned by the last defender and the far-side player is drifting in behind the press. Does the receiver turn, set it back, or switch to the far side?",
+  "tags": ["5v5", "small-sided", "wide", "pressing"],
+  "pitch": { "lengthM": 40, "widthM": 20, "goalWidthM": 3.66 },
+  "players": [
+    { "id": "gk", "team": "attack", "label": "GK", "pos": { "x": 0.03, "y": 0.5 } },
+    { "id": "def", "team": "attack", "label": "D", "pos": { "x": 0.38, "y": 0.5 } },
+    { "id": "lw", "team": "attack", "label": "LW", "pos": { "x": 0.62, "y": 0.18 } },
+    { "id": "rw", "team": "attack", "label": "RW", "pos": { "x": 0.6, "y": 0.84 } },
+    { "id": "piv", "team": "attack", "label": "P", "pos": { "x": 0.83, "y": 0.46 } },
+    { "id": "dgk", "team": "defence", "label": "GK", "pos": { "x": 0.97, "y": 0.5 } },
+    { "id": "dlast", "team": "defence", "label": "D", "pos": { "x": 0.89, "y": 0.5 } },
+    { "id": "dpress", "team": "defence", "label": "M", "pos": { "x": 0.66, "y": 0.74 } },
+    { "id": "dcover", "team": "defence", "label": "M", "pos": { "x": 0.72, "y": 0.42 } },
+    { "id": "dfar", "team": "defence", "label": "M", "pos": { "x": 0.52, "y": 0.3 } }
+  ],
+  "ball": { "pos": { "x": 0.61, "y": 0.83 }, "owner": "rw" }
+}

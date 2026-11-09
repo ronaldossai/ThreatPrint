@@ -15,7 +15,7 @@ Defined in `crates/simulation/src/geometry.rs`, and mirrored in `apps/desktop/sr
 
 - The team in possession **always attacks toward `+x`**, which the UI shows as left to right.
 - So `y = 0` (top of the screen) is the **attacking team's left** flank and the defending team's right. Label wide players accordingly: an attacking RW belongs near `y = 1`.
-- Pitch: 105 m × 68 m, goal 7.32 m wide (`Pitch::default()`).
+- Pitch: each scenario can set its own `pitch` (`lengthM`, `widthM`, `goalWidthM`). If it doesn't, the default is 105 m × 68 m with a 7.32 m goal (`Pitch::default()`). Normalised positions are relative to the scenario's pitch, so the same `Pos` is a different spot on a different-sized pitch.
 - Geometry is computed in metres with the origin at the own-goal-line / top-touchline corner.
 - The UI's SVG user space is also in metres, so screen ↔ pitch conversion is a single scale step.
 

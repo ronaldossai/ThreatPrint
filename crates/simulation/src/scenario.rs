@@ -55,6 +55,7 @@ pub struct Scenario {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ScenarioError {
+    InvalidPitch,
     DuplicatePlayerId(String),
     OffPitch(String),
     UnknownBallOwner(String),
@@ -64,6 +65,7 @@ pub enum ScenarioError {
 impl fmt::Display for ScenarioError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::InvalidPitch => write!(f, "pitch dimensions must be positive and the goal narrower than the pitch"),
             Self::DuplicatePlayerId(id) => write!(f, "duplicate player id `{id}`"),
             Self::OffPitch(what) => write!(f, "`{what}` is positioned off the pitch"),
             Self::UnknownBallOwner(id) => write!(f, "ball owner `{id}` is not a player in this scenario"),
@@ -84,6 +86,9 @@ impl Scenario {
 
     /// Check structural invariants the engine relies on.
     pub fn validate(&self) -> Result<(), ScenarioError> {
+        if !self.pitch.is_valid() {
+            return Err(ScenarioError::InvalidPitch);
+        }
         let mut seen = HashSet::new();
         for p in &self.players {
             if !seen.insert(p.id.as_str()) {
@@ -132,6 +137,13 @@ mod tests {
     #[test]
     fn valid_scenario_passes() {
         assert_eq!(base().validate(), Ok(()));
+    }
+
+    #[test]
+    fn rejects_invalid_pitch() {
+        let mut s = base();
+        s.pitch.width_m = 0.0;
+        assert_eq!(s.validate(), Err(ScenarioError::InvalidPitch));
     }
 
     #[test]

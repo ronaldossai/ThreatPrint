@@ -163,7 +163,8 @@ select {
 .markings path {
   fill: none;
   stroke: var(--pitch-line);
-  stroke-width: 0.22;
+  /* Line width in metres on a full-size pitch; --ui-scale is set on the SVG. */
+  stroke-width: calc(0.22px * var(--ui-scale, 1));
 }
 
 .markings .spot {

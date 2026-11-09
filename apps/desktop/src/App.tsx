@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { Pitch } from "./components/Pitch";
-import { distanceToGoalM, toMetres } from "./coords";
+import { distanceToGoalM, pitchOf, toMetres } from "./coords";
 import { engineAvailable, fetchLocationThreat, fetchThreatGrid } from "./engine";
 import { threatLegendGradient } from "./heatmapColour";
 import { scenarioReducer } from "./scenarioState";
 import { DEFAULT_TEMPLATE, TEMPLATES, templateById } from "./templates";
-import type { Player, Pos, ThreatGrid } from "./types";
+import type { Pitch as PitchDims, Player, Pos, ThreatGrid } from "./types";
 
-// 1.25 m cells, upscaled smoothly as a single image.
-const GRID_COLS = 84;
-const GRID_ROWS = 54;
+// Heatmap cell size, upscaled smoothly as a single image. 84 × 54 cells on a full-size pitch.
+const GRID_CELL_M = 1.25;
 
 export default function App() {
   const [templateId, setTemplateId] = useState(DEFAULT_TEMPLATE.id);
@@ -21,10 +20,22 @@ export default function App() {
   const [dragging, setDragging] = useState(false);
   const [engineError, setEngineError] = useState<string | null>(null);
 
+  // The pitch only changes when a different scenario is loaded, so this doesn't refetch while dragging.
+  const pitch = pitchOf(scenario);
   useEffect(() => {
     if (!engineAvailable) return;
-    fetchThreatGrid(GRID_COLS, GRID_ROWS).then(setGrid, (e) => setEngineError(String(e)));
-  }, []);
+    let current = true;
+    setGrid(null);
+    const cols = Math.max(1, Math.round(pitch.lengthM / GRID_CELL_M));
+    const rows = Math.max(1, Math.round(pitch.widthM / GRID_CELL_M));
+    fetchThreatGrid(pitch, cols, rows).then(
+      (g) => current && setGrid(g),
+      (e) => setEngineError(String(e)),
+    );
+    return () => {
+      current = false;
+    };
+  }, [pitch]);
 
   // Evaluate when a drag ends rather than on every frame of it.
   // Latest-wins: ignore responses that arrive after a newer request was sent.
@@ -33,11 +44,11 @@ export default function App() {
   useEffect(() => {
     if (!engineAvailable || dragging) return;
     const seq = ++requestSeq.current;
-    fetchLocationThreat(ballPos).then(
+    fetchLocationThreat(pitch, ballPos).then(
       (v) => seq === requestSeq.current && setBallThreat(v),
       (e) => setEngineError(String(e)),
     );
-  }, [ballPos, dragging]);
+  }, [pitch, ballPos, dragging]);
 
   const loadTemplate = (id: string) => {
     const template = templateById(id);
@@ -124,7 +135,7 @@ export default function App() {
               <dt>In possession</dt>
               <dd>{owner ? owner.label : "Loose"}</dd>
               <dt>Distance to goal</dt>
-              <dd>{distanceToGoalM(scenario.ball.pos).toFixed(0)} m</dd>
+              <dd>{distanceToGoalM(pitch, scenario.ball.pos).toFixed(0)} m</dd>
               <dt>Baseline threat</dt>
               <dd className={dragging ? "stale" : undefined} title={dragging ? "Updates when you release" : undefined}>
                 {ballThreat === null ? "—" : ballThreat.toFixed(2)}
@@ -135,7 +146,7 @@ export default function App() {
 
           <section>
             <h2>Selected player</h2>
-            {selected ? <PlayerDetails player={selected} /> : <p className="muted">Click or tab to a player.</p>}
+            {selected ? <PlayerDetails pitch={pitch} player={selected} /> : <p className="muted">Click or tab to a player.</p>}
           </section>
 
           <section>
@@ -170,8 +181,8 @@ export default function App() {
   );
 }
 
-function PlayerDetails({ player }: { player: Player }) {
-  const m = toMetres(player.pos);
+function PlayerDetails({ pitch, player }: { pitch: PitchDims; player: Player }) {
+  const m = toMetres(pitch, player.pos);
   return (
     <dl>
       <dt>Role</dt>
@@ -183,7 +194,7 @@ function PlayerDetails({ player }: { player: Player }) {
         {m.x.toFixed(1)} m upfield, {m.y.toFixed(1)} m from left touchline
       </dd>
       <dt>Distance to goal</dt>
-      <dd>{distanceToGoalM(player.pos).toFixed(0)} m</dd>
+      <dd>{distanceToGoalM(pitch, player.pos).toFixed(0)} m</dd>
     </dl>
   );
 }

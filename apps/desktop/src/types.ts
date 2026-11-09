@@ -21,11 +21,20 @@ export interface Ball {
   owner?: string | null;
 }
 
+/** Physical pitch dimensions in metres. */
+export interface Pitch {
+  lengthM: number;
+  widthM: number;
+  goalWidthM: number;
+}
+
 export interface Scenario {
   id: string;
   name: string;
   description?: string;
   tags?: string[];
+  /** Defaults to a standard full-size pitch when omitted. */
+  pitch?: Pitch;
   players: Player[];
   ball: Ball;
 }

@@ -16,4 +16,8 @@ describe("scenario templates", () => {
     expect(templateById("flank-overlap-2v1")?.name).toMatch(/overlap/i);
     expect(templateById("nope")).toBeUndefined();
   });
+
+  it("carries a small-sided template's own pitch", () => {
+    expect(templateById("small-sided-5v5-wide-release")?.pitch).toEqual({ lengthM: 40, widthM: 20, goalWidthM: 3.66 });
+  });
 });

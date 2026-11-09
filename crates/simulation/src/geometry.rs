@@ -78,6 +78,13 @@ impl Default for Pitch {
 }
 
 impl Pitch {
+    /// True if every dimension is finite and positive and the goal fits
+    /// between the touchlines.
+    pub fn is_valid(&self) -> bool {
+        let dims = [self.length_m, self.width_m, self.goal_width_m];
+        dims.iter().all(|d| d.is_finite() && *d > 0.0) && self.goal_width_m < self.width_m
+    }
+
     pub fn to_metres(&self, p: Pos) -> Point {
         Point::new(p.x * self.length_m, p.y * self.width_m)
     }
@@ -152,6 +159,16 @@ mod tests {
         // Full width is shorter than full length on a non-square pitch.
         let w = pitch.distance_m(Pos::new(0.5, 0.0), Pos::new(0.5, 1.0));
         assert!((w - 68.0).abs() < EPS);
+    }
+
+    #[test]
+    fn pitch_validity() {
+        assert!(Pitch::default().is_valid());
+        let small = Pitch { length_m: 40.0, width_m: 20.0, goal_width_m: 3.0 };
+        assert!(small.is_valid());
+        assert!(!Pitch { length_m: 0.0, ..small }.is_valid());
+        assert!(!Pitch { width_m: f64::NAN, ..small }.is_valid());
+        assert!(!Pitch { goal_width_m: 25.0, ..small }.is_valid());
     }
 
     #[test]

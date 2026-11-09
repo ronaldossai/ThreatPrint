@@ -1,4 +1,4 @@
-import { nearestPlayer } from "./coords";
+import { nearestPlayer, pitchOf } from "./coords";
 import type { Pos, Scenario } from "./types";
 
 /** A ball dropped within this many metres of an attacker is given to them. */
@@ -28,7 +28,7 @@ export function scenarioReducer(state: Scenario, action: ScenarioAction): Scenar
     case "moveBall":
       return { ...state, ball: { pos: action.pos, owner: null } };
     case "dropBall": {
-      const owner = nearestPlayer(state.players, action.pos, BALL_PICKUP_RADIUS_M, (p) => p.team === "attack");
+      const owner = nearestPlayer(pitchOf(state), state.players, action.pos, BALL_PICKUP_RADIUS_M, (p) => p.team === "attack");
       return { ...state, ball: { pos: action.pos, owner: owner?.id ?? null } };
     }
     case "load":

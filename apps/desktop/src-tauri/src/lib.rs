@@ -9,17 +9,23 @@ use threatprint_sim::{Pitch, Pos, ThreatGrid, ThreatParams};
 /// an enormous grid.
 const MAX_GRID_CELLS: usize = 250_000;
 
-#[tauri::command]
-fn location_threat(pos: Pos) -> f64 {
-    threatprint_sim::location_threat(&Pitch::default(), &ThreatParams::default(), pos)
+fn check_pitch(pitch: &Pitch) -> Result<(), String> {
+    if pitch.is_valid() { Ok(()) } else { Err(format!("invalid pitch dimensions: {pitch:?}")) }
 }
 
 #[tauri::command]
-fn threat_grid(cols: usize, rows: usize) -> Result<ThreatGrid, String> {
+fn location_threat(pitch: Pitch, pos: Pos) -> Result<f64, String> {
+    check_pitch(&pitch)?;
+    Ok(threatprint_sim::location_threat(&pitch, &ThreatParams::default(), pos))
+}
+
+#[tauri::command]
+fn threat_grid(pitch: Pitch, cols: usize, rows: usize) -> Result<ThreatGrid, String> {
+    check_pitch(&pitch)?;
     if cols == 0 || rows == 0 || cols.saturating_mul(rows) > MAX_GRID_CELLS {
         return Err(format!("grid size {cols}×{rows} is out of range"));
     }
-    Ok(threatprint_sim::threat_grid(&Pitch::default(), &ThreatParams::default(), cols, rows))
+    Ok(threatprint_sim::threat_grid(&pitch, &ThreatParams::default(), cols, rows))
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
